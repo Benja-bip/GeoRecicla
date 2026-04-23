@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 140 20% 97%;
+    --foreground: 150 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 30% 12%;
+
+    --primary: 145 63% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 145 30% 92%;
+    --secondary-foreground: 150 30% 18%;
+
+    --muted: 140 15% 93%;
+    --muted-foreground: 150 10% 45%;
+
+    --accent: 80 55% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 140 15% 88%;
+    --input: 140 15% 88%;
+    --ring: 145 63% 42%;
+
+    --radius: 0.75rem;
+
+    --eco-dark: 150 40% 20%;
+    --eco-leaf: 120 45% 55%;
+    --eco-sky: 195 70% 50%;
+    --eco-earth: 30 35% 55%;
+    --eco-glow: 145 80% 60%;
+
+    --font-display: 'Nunito', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 150 20% 8%;
+    --foreground: 140 15% 93%;
+    --card: 150 20% 12%;
+    --card-foreground: 140 15% 93%;
+    --popover: 150 20% 12%;
+    --popover-foreground: 140 15% 93%;
+    --primary: 145 63% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 20% 18%;
+    --secondary-foreground: 140 15% 93%;
+    --muted: 150 15% 18%;
+    --muted-foreground: 140 10% 60%;
+    --accent: 80 55% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 150 15% 22%;
+    --input: 150 15% 22%;
+    --ring: 145 63% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .gradient-eco {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--eco-leaf)));
+  }
+
+  .gradient-hero {
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--background)) 100%);
+  }
+
+  .text-gradient-eco {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--eco-leaf)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .shadow-eco {
+    box-shadow: 0 8px 32px -8px hsl(var(--primary) / 0.2);
+  }
+
+  .map-placeholder {
+    background: 
+      linear-gradient(45deg, hsl(140 15% 90%) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(140 15% 90%) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(140 15% 88%) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(140 15% 88%) 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+    background-color: hsl(140 20% 94%);
+  }
+}
