@@ -1,9 +1,12 @@
-import { Home, Plus, Menu, X } from "lucide-react";
+import { Home, Plus, Menu, X, LogIn, LogOut } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 const AppHeader = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
@@ -17,6 +20,15 @@ const AppHeader = () => {
         </h1>
 
         <div className="flex items-center gap-1">
+          {user ? (
+            <button onClick={signOut} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Cerrar sesión" title={user.email ?? ""}>
+              <LogOut className="w-5 h-5 text-foreground" />
+            </button>
+          ) : (
+            <Link to="/auth" className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Iniciar sesión">
+              <LogIn className="w-5 h-5 text-foreground" />
+            </Link>
+          )}
           <button className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Agregar">
             <Plus className="w-5 h-5 text-foreground" />
           </button>
