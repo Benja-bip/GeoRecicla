@@ -1,12 +1,39 @@
-import { Home, Plus, Menu, X, LogIn, LogOut } from "lucide-react";
+import { Home, Plus, Menu, X, LogIn, LogOut as LogOutIcon, Settings } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AppHeader = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Obtener iniciales del email para el avatar
+  const getInitials = (email: string) => {
+    return email
+      .split("@")[0]
+      .split(".")
+      .map((part) => part[0].toUpperCase())
+      .join("")
+      .slice(0, 2);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleViewProfile = () => {
+    navigate("/profile");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
@@ -21,9 +48,46 @@ const AppHeader = () => {
 
         <div className="flex items-center gap-1">
           {user ? (
-            <button onClick={signOut} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Cerrar sesión" title={user.email ?? ""}>
-              <LogOut className="w-5 h-5 text-foreground" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Perfil de usuario">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
+                    <AvatarFallback className="text-xs">{getInitials(user.email || "")}</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center gap-3 px-2 py-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
+                    <AvatarFallback>{getInitials(user.email || "")}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">Mi Perfil</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer gap-2">
+                  <Settings className="w-4 h-4" />
+                  Ver Mi Perfil
+                </DropdownMenuItem>
+                <div className="px-2 py-2 text-xs text-muted-foreground space-y-1">
+                  <p>
+                    <span className="font-semibold">Estado:</span> Activo
+                  </p>
+                  <p>
+                    <span className="font-semibold">Miembro desde:</span> {new Date(user.created_at || "").toLocaleDateString("es-ES")}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+                  <LogOutIcon className="w-4 h-4 mr-2" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/auth" className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Iniciar sesión">
               <LogIn className="w-5 h-5 text-foreground" />
