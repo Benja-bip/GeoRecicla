@@ -4,21 +4,24 @@ Una aplicación web moderna para encontrar puntos de reciclaje cercanos, identif
 
 ## 🚀 Características
 
-- **Mapa Interactivo**: Visualiza puntos de reciclaje en tu área
+- **Mapa Interactivo**: Visualiza puntos de reciclaje en tu área con Leaflet
 - **Identificación de Materiales**: Aprende qué materiales se pueden reciclar
 - **Lista de Puntos Limpios**: Encuentra centros de reciclaje cercanos
+- **Gestión de Puntos**: Agrega, edita y elimina puntos de reciclaje (usuarios autenticados)
 - **Autenticación de Usuarios**: Registro e inicio de sesión con email/contraseña y Google OAuth
+- **Blog**: Información y consejos sobre reciclaje
 - **Interfaz Moderna**: Diseño responsive con tema ecológico
-- **Base de Datos**: Integración con Supabase
+- **Base de Datos**: Integración con Supabase con RLS
 
 ## 🛠️ Tecnologías
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **UI**: Tailwind CSS + Radix UI + shadcn/ui
+- **Mapas**: Leaflet + React Leaflet
 - **Estado**: TanStack Query
 - **Autenticación**: Supabase Auth + Lovable Cloud Auth
 - **Animaciones**: Framer Motion
-- **Backend**: Supabase
+- **Backend**: Supabase (Database + Storage + Auth)
 
 ## 📦 Instalación
 

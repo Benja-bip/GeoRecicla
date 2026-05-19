@@ -3,11 +3,13 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecyclingPoints, type RecyclingPoint } from "@/services/puntos";
 
-const formatMaterials = (tipo_material: string) =>
-  tipo_material
-    .split(/[,;]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+const formatMaterials = (materials: string[] | string) =>
+  Array.isArray(materials)
+    ? materials.filter(Boolean)
+    : materials
+        .split(/[,;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
 
 const RecyclingPoints = () => {
   const {
@@ -62,22 +64,22 @@ const RecyclingPoints = () => {
                 className="bg-card rounded-xl border border-border p-4 hover:shadow-eco transition-shadow cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-display font-bold text-foreground text-sm">{point.nombre}</h3>
+                  <h3 className="font-display font-bold text-foreground text-sm">{point.name}</h3>
                   <span className="flex items-center gap-1 text-xs text-primary font-semibold bg-secondary rounded-full px-2 py-0.5">
                     <Navigation className="w-3 h-3" />
-                    {point.latitud && point.longitud ? "Ver mapa" : "Ubicación"}
+                    {point.latitude != null && point.longitude != null ? "Ver mapa" : "Ubicación"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                   <MapPin className="w-3 h-3" />
-                  {point.direccion}
+                  {point.address || "Dirección no disponible"}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
                   <Clock className="w-3 h-3" />
-                  {point.tipo_material}
+                  {Array.isArray(point.materials) ? point.materials.join(", ") : point.materials}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {formatMaterials(point.tipo_material).map((material) => (
+                  {formatMaterials(point.materials).map((material) => (
                     <span key={material} className="text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">
                       {material}
                     </span>

@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import AddPointDialog from "./AddPointDialog";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AppHeader = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addPointOpen, setAddPointOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -25,6 +28,15 @@ const AppHeader = () => {
       .map((part) => part[0].toUpperCase())
       .join("")
       .slice(0, 2);
+  };
+
+  const handleAddPoint = () => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para agregar un punto");
+      navigate("/auth");
+      return;
+    }
+    setAddPointOpen(true);
   };
 
   const handleSignOut = async () => {
@@ -93,7 +105,7 @@ const AppHeader = () => {
               <LogIn className="w-5 h-5 text-foreground" />
             </Link>
           )}
-          <button className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Agregar">
+          <button className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Agregar" onClick={handleAddPoint}>
             <Plus className="w-5 h-5 text-foreground" />
           </button>
           <button
@@ -115,17 +127,29 @@ const AppHeader = () => {
             className="overflow-hidden border-t border-border bg-card"
           >
             <ul className="container mx-auto px-4 py-3 space-y-2">
-              {["Inicio", "Mapa", "Materiales", "Puntos Limpios", "Acerca de"].map((item) => (
-                <li key={item}>
-                  <a href="#" className="block px-3 py-2 rounded-lg hover:bg-secondary text-foreground font-medium transition-colors">
-                    {item}
-                  </a>
+              <li>
+                <Link to="/" className="block px-3 py-2 rounded-lg hover:bg-secondary text-foreground font-medium transition-colors">
+                  Inicio
+                </Link>
+              </li>
+              <li>
+                <Link to="/blog" className="block px-3 py-2 rounded-lg hover:bg-secondary text-foreground font-medium transition-colors">
+                  Blog
+                </Link>
+              </li>
+              {user && (
+                <li>
+                  <button onClick={() => setAddPointOpen(true)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary text-foreground font-medium transition-colors">
+                    Agregar Punto
+                  </button>
                 </li>
-              ))}
+              )}
             </ul>
           </motion.nav>
         )}
       </AnimatePresence>
+      
+      <AddPointDialog open={addPointOpen} onClose={() => setAddPointOpen(false)} />
     </header>
   );
 };
