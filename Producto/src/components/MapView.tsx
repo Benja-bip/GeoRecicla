@@ -1,61 +1,158 @@
-import { MapPin, Navigation } from "lucide-react";
-import { motion } from "framer-motion";
-import heroMap from "@/assets/hero-map.jpg";
+import { useEffect, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { supabase } from "@/integrations/supabase/client";
+import { demoPoints, haversineKm, directionsUrl, type RecyclingPoint } from "@/lib/points";
+import { getAllComunaMapPoints } from "@/lib/comunas";
 
-const MapView = () => {
+const defaultIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+L.Marker.prototype.options.icon = defaultIcon;
+
+const userIcon = L.divIcon({
+  className: "",
+  html: `<div style="width:18px;height:18px;background:hsl(var(--primary));border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px hsl(var(--primary));"></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
+interface MapViewProps {
+  searchLocation?: { lat: number; lng: number; displayName: string } | null;
+}
+
+const FlyTo = ({ location }: { location: MapViewProps["searchLocation"] }) => {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 200);
+  }, [map]);
+  useEffect(() => {
+    if (location) map.flyTo([location.lat, location.lng], 14, { duration: 1 });
+  }, [location, map]);
+  return null;
+};
+
+const MapView = ({ searchLocation }: MapViewProps) => {
+  const [userPoints, setUserPoints] = useState<RecyclingPoint[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("recycling_points")
+      .select("id, name, address, latitude, longitude, materials, photo_url, notes")
+      .then(({ data }) => {
+        if (data) setUserPoints(data as RecyclingPoint[]);
+      });
+
+    const channel = supabase
+      .channel("recycling_points_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "recycling_points" }, () => {
+        supabase
+          .from("recycling_points")
+          .select("id, name, address, latitude, longitude, materials, photo_url, notes")
+          .then(({ data }) => data && setUserPoints(data as RecyclingPoint[]));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const comunaMapPoints: RecyclingPoint[] = getAllComunaMapPoints().map((p) => ({
+    id: p.id,
+    name: p.name,
+    address: `${p.address} · ${p.comuna}`,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    materials: p.materials,
+    photo_url: null,
+    notes: p.type,
+  }));
+  const allPoints = [...demoPoints, ...comunaMapPoints, ...userPoints];
+
+  const pointsToShow = searchLocation
+    ? allPoints
+        .map((p) => ({
+          ...p,
+          distanceKm: haversineKm(
+            { lat: searchLocation.lat, lng: searchLocation.lng },
+            { lat: p.latitude, lng: p.longitude }
+          ),
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 8)
+    : allPoints;
+
   return (
     <div className="relative w-full aspect-[16/10] md:aspect-[16/7] rounded-2xl overflow-hidden shadow-eco border border-border">
-      <img src={heroMap} alt="Mapa de puntos de reciclaje" className="w-full h-full object-cover" />
-      
-      {/* Simulated markers */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.3, type: "spring" }}
-        className="absolute top-[35%] left-[40%]"
+      <MapContainer
+        center={[-33.4489, -70.6693]}
+        zoom={13}
+        scrollWheelZoom={true}
+        className="w-full h-full z-0"
       >
-        <div className="relative">
-          <MapPin className="w-8 h-8 text-primary fill-primary/30 drop-shadow-lg" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-eco-glow animate-pulse" />
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.5, type: "spring" }}
-        className="absolute top-[55%] left-[65%]"
-      >
-        <MapPin className="w-8 h-8 text-destructive fill-destructive/30 drop-shadow-lg" />
-      </motion.div>
-
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.7, type: "spring" }}
-        className="absolute top-[45%] left-[25%]"
-      >
-        <MapPin className="w-8 h-8 text-eco-sky fill-eco-sky/30 drop-shadow-lg" />
-      </motion.div>
-
-      {/* User location */}
-      <div className="absolute bottom-[30%] left-[50%]">
-        <div className="w-4 h-4 rounded-full bg-eco-sky border-2 border-card shadow-lg" />
-        <div className="absolute inset-0 w-4 h-4 rounded-full bg-eco-sky/40 animate-ping" />
-      </div>
-
-      {/* Distance badge */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
-        className="absolute bottom-[35%] left-[55%] bg-card/95 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium text-foreground shadow-md border border-border"
-      >
-        <Navigation className="w-3 h-3 inline mr-1 text-primary" />
-        4 min caminando
-      </motion.div>
+        <FlyTo location={searchLocation} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {searchLocation && (
+          <Marker position={[searchLocation.lat, searchLocation.lng]} icon={userIcon}>
+            <Popup>
+              <div className="space-y-1">
+                <h3 className="font-bold">Tu ubicación</h3>
+                <p className="text-xs text-muted-foreground">{searchLocation.displayName}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+        {pointsToShow.map((p) => {
+          const dist = (p as any).distanceKm ?? null;
+          return (
+            <Marker key={p.id} position={[p.latitude, p.longitude]}>
+              <Popup>
+                <div className="space-y-1 min-w-[180px]">
+                  <h3 className="font-bold">{p.name}</h3>
+                  {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
+                  {dist !== null && (
+                    <p className="text-xs font-semibold text-primary">A {(dist as number).toFixed(2)} km</p>
+                  )}
+                  {p.photo_url && (
+                    <img src={p.photo_url} alt={p.name} className="w-full h-24 object-cover rounded my-1" />
+                  )}
+                  {p.materials.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {p.materials.map((m) => (
+                        <span key={m} className="text-[10px] bg-secondary px-2 py-0.5 rounded-full">{m}</span>
+                      ))}
+                    </div>
+                  )}
+                  {p.notes && <p className="text-xs pt-1">{p.notes}</p>}
+                  {searchLocation && (
+                    <a
+                      href={directionsUrl(
+                        { lat: searchLocation.lat, lng: searchLocation.lng },
+                        { lat: p.latitude, lng: p.longitude }
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-2 text-xs font-semibold text-primary underline"
+                    >
+                      Cómo llegar →
+                    </a>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
     </div>
   );
-};
+}
 
 export default MapView;
