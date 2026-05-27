@@ -4,7 +4,6 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import { Recycle, Mail, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,8 +50,31 @@ const Auth = () => {
         if (error) throw error;
         navigate("/", { replace: true });
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err) {
+      let errorMessage = err instanceof Error ? err.message : String(err);
+      let errorTitle = "Error";
+
+      // Detectar errores específicos de Supabase
+      const errMsg = errorMessage.toLowerCase();
+      
+      if (errMsg.includes("user already registered") || 
+          errMsg.includes("already registered") ||
+          errMsg.includes("email already exists")) {
+        errorTitle = "Email en uso";
+        errorMessage = "Ya existe una cuenta con este correo. Intenta iniciar sesión o usa otro email.";
+      } else if (errMsg.includes("invalid email")) {
+        errorTitle = "Email inválido";
+        errorMessage = "El correo que ingresaste no es válido.";
+      } else if (errMsg.includes("password") || 
+                 errMsg.includes("weak password")) {
+        errorTitle = "Contraseña débil";
+        errorMessage = "La contraseña debe tener mínimo 6 caracteres y preferiblemente mayúsculas, minúsculas y números.";
+      } else if (errMsg.includes("invalid login credentials")) {
+        errorTitle = "Credenciales inválidas";
+        errorMessage = "Email o contraseña incorrectos.";
+      }
+
+      toast({ title: errorTitle, description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -60,9 +82,15 @@ const Auth = () => {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) {
-      toast({ title: "Error con Google", description: String(result.error), variant: "destructive" });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) {
+      toast({ title: "Error con Google", description: error.message, variant: "destructive" });
       setLoading(false);
     }
   };
