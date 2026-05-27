@@ -1,8 +1,9 @@
-import { Home, Plus, Menu, X, LogIn, LogOut } from "lucide-react";
+import { Home, Plus, Menu, X, LogIn } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AppHeaderProps {
   onAddPoint?: () => void;
@@ -10,7 +11,18 @@ interface AppHeaderProps {
 
 const AppHeader = ({ onAddPoint }: AppHeaderProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const getInitials = (name: string, email: string) => {
+    if (name && name.trim()) {
+      return name.trim().split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+    }
+    return email.split("@")[0].slice(0, 2).toUpperCase();
+  };
+
+  const fullName = (user?.user_metadata?.full_name as string) || "";
+  const avatarSeed = user?.email || user?.id || "default";
 
   return (
     <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
@@ -25,8 +37,18 @@ const AppHeader = ({ onAddPoint }: AppHeaderProps) => {
 
         <div className="flex items-center gap-1">
           {user ? (
-            <button onClick={signOut} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Cerrar sesión" title={user.email ?? ""}>
-              <LogOut className="w-5 h-5 text-foreground" />
+            <button
+              onClick={() => navigate("/profile")}
+              className="rounded-full hover:ring-2 hover:ring-primary/50 transition-all"
+              aria-label="Mi perfil"
+              title={fullName || user.email || "Mi perfil"}
+            >
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
+                <AvatarFallback className="text-xs font-bold">
+                  {getInitials(fullName, user.email || "")}
+                </AvatarFallback>
+              </Avatar>
             </button>
           ) : (
             <Link to="/auth" className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Iniciar sesión">
@@ -59,7 +81,7 @@ const AppHeader = ({ onAddPoint }: AppHeaderProps) => {
                 { label: "Inicio", href: "/" },
                 { label: "Materiales", href: "/#materiales" },
                 { label: "Puntos Limpios", href: "/#puntos-limpios" },
-                { label: "Cómo reciclar", href: "/blog" }
+                { label: "Cómo reciclar", href: "/blog" },
               ].map((item) => (
                 <li key={item.label}>
                   <a
@@ -71,6 +93,16 @@ const AppHeader = ({ onAddPoint }: AppHeaderProps) => {
                   </a>
                 </li>
               ))}
+              {user && (
+                <li>
+                  <button
+                    onClick={() => { navigate("/profile"); setMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary text-foreground font-medium transition-colors"
+                  >
+                    Mi Perfil
+                  </button>
+                </li>
+              )}
             </ul>
           </motion.nav>
         )}
