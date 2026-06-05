@@ -26,6 +26,7 @@ const userIcon = L.divIcon({
 
 interface MapViewProps {
   searchLocation?: { lat: number; lng: number; displayName: string } | null;
+  materialFilter?: string | null;
 }
 
 const FlyTo = ({ location }: { location: MapViewProps["searchLocation"] }) => {
@@ -39,7 +40,7 @@ const FlyTo = ({ location }: { location: MapViewProps["searchLocation"] }) => {
   return null;
 };
 
-const MapView = ({ searchLocation }: MapViewProps) => {
+const MapView = ({ searchLocation, materialFilter }: MapViewProps) => {
   const [userPoints, setUserPoints] = useState<RecyclingPoint[]>([]);
 
   useEffect(() => {
@@ -72,10 +73,20 @@ const MapView = ({ searchLocation }: MapViewProps) => {
     photo_url: null,
     notes: p.type,
   }));
+
   const allPoints = [...demoPoints, ...comunaMapPoints, ...userPoints];
 
+  // Aplicar filtro por material si está activo
+  const filteredPoints = materialFilter
+    ? allPoints.filter((p) =>
+        p.materials.some((m) =>
+          m.toLowerCase().includes(materialFilter.toLowerCase())
+        )
+      )
+    : allPoints;
+
   const pointsToShow = searchLocation
-    ? allPoints
+    ? filteredPoints
         .map((p) => ({
           ...p,
           distanceKm: haversineKm(
@@ -85,10 +96,17 @@ const MapView = ({ searchLocation }: MapViewProps) => {
         }))
         .sort((a, b) => a.distanceKm - b.distanceKm)
         .slice(0, 8)
-    : allPoints;
+    : filteredPoints;
 
   return (
     <div className="relative w-full aspect-[16/10] md:aspect-[16/7] rounded-2xl overflow-hidden shadow-eco border border-border">
+      {/* Badge de filtro activo sobre el mapa */}
+      {materialFilter && (
+        <div className="absolute top-3 left-3 z-[1000] bg-card/95 backdrop-blur-sm border border-primary/30 rounded-full px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+          Mostrando: {materialFilter} · {pointsToShow.length} puntos
+        </div>
+      )}
+
       <MapContainer
         center={[-33.4489, -70.6693]}
         zoom={13}
@@ -127,7 +145,16 @@ const MapView = ({ searchLocation }: MapViewProps) => {
                   {p.materials.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-1">
                       {p.materials.map((m) => (
-                        <span key={m} className="text-[10px] bg-secondary px-2 py-0.5 rounded-full">{m}</span>
+                        <span
+                          key={m}
+                          className={`text-[10px] px-2 py-0.5 rounded-full ${
+                            materialFilter && m.toLowerCase().includes(materialFilter.toLowerCase())
+                              ? "bg-primary text-primary-foreground font-semibold"
+                              : "bg-secondary"
+                          }`}
+                        >
+                          {m}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -153,6 +180,6 @@ const MapView = ({ searchLocation }: MapViewProps) => {
       </MapContainer>
     </div>
   );
-}
+};
 
 export default MapView;

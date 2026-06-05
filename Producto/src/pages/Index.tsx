@@ -8,13 +8,16 @@ import RecyclingPoints from "@/components/RecyclingPoints";
 import AddPointDialog from "@/components/AddPointDialog";
 import { Recycle } from "lucide-react";
 import { geocodeAddress, type GeocodeResult } from "@/lib/points";
+import { type Material } from "@/lib/materials-data";
 import { toast } from "sonner";
 
 const Index = () => {
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addPointOpen, setAddPointOpen] = useState(false);
   const [searchLocation, setSearchLocation] = useState<GeocodeResult | null>(null);
   const [searching, setSearching] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const handleSearch = async (address: string) => {
     setSearching(true);
@@ -33,14 +36,45 @@ const Index = () => {
     }
   };
 
+  const handleOpenDialog = (material: Material) => {
+    setSelectedMaterial(material);
+    setDialogOpen(true);
+  };
+
+  const handleFilterChange = (filter: string | null) => {
+    setActiveFilter(filter);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader onAddPoint={() => setAddPointOpen(true)} />
 
       <main className="container mx-auto px-4 py-6 space-y-8 max-w-5xl">
         <SearchBar onSearch={handleSearch} loading={searching} />
-        <MapView searchLocation={searchLocation} />
-        <MaterialsSection onOpenDialog={() => setDialogOpen(true)} />
+
+        {/* Indicador de filtro activo sobre el mapa */}
+        {activeFilter && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl text-sm">
+            <span className="text-primary font-semibold">
+              🗺️ Mapa filtrado por: <strong>{activeFilter}</strong>
+            </span>
+            <button
+              onClick={() => setActiveFilter(null)}
+              className="ml-auto text-xs text-primary hover:underline"
+            >
+              Limpiar ✕
+            </button>
+          </div>
+        )}
+
+        <MapView searchLocation={searchLocation} materialFilter={activeFilter} />
+
+        <MaterialsSection
+          onOpenDialog={handleOpenDialog}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+        />
+
         <div id="puntos-limpios">
           <RecyclingPoints />
         </div>
@@ -67,7 +101,11 @@ const Index = () => {
         </footer>
       </main>
 
-      <MaterialDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <MaterialDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        material={selectedMaterial}
+      />
       <AddPointDialog open={addPointOpen} onClose={() => setAddPointOpen(false)} />
     </div>
   );
