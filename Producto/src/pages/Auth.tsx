@@ -45,8 +45,8 @@ const Auth = () => {
   const [address, setAddress] = useState("");
 
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+   if (user && !loading) navigate("/profile", { replace: true });
+  }, [user, loading, navigate]);
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
