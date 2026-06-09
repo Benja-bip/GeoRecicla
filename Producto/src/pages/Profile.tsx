@@ -17,7 +17,6 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import AppHeader from "@/components/AppHeader";
 
-// Datos dummy de historial de reciclaje
 const RECYCLING_HISTORY = [
   { id: 1, type: "Plástico", amount: "2.5 kg", points: 25, date: "2025-05-20", icon: "♻️" },
   { id: 2, type: "Vidrio", amount: "1.8 kg", points: 18, date: "2025-05-15", icon: "🫙" },
@@ -34,19 +33,19 @@ const TOTAL_KG = RECYCLING_HISTORY.reduce((acc, r) => {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isOnline] = useState(true); // simula estado online
+  const [isOnline] = useState(true);
 
   const [profileData, setProfileData] = useState({
-    fullName: "",
-    phone: "",
-    address: "",
+    fullName: "", phone: "", address: "",
   });
   const [formData, setFormData] = useState(profileData);
 
+  // ✅ Espera a que loading termine antes de redirigir
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       navigate("/auth", { replace: true });
       return;
@@ -59,8 +58,10 @@ const Profile = () => {
     };
     setProfileData(next);
     setFormData(next);
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
+  // ✅ Muestra nada mientras carga o si no hay usuario
+  if (loading) return null;
   if (!user) return null;
 
   const getInitials = (name: string, email: string) => {
@@ -110,9 +111,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Volver */}
         <motion.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -122,15 +121,10 @@ const Profile = () => {
           <ArrowLeft className="w-4 h-4" /> Volver al inicio
         </motion.button>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
-        >
-          {/* ── Card principal ── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          {/* Card principal */}
           <Card className="p-6">
             <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-              {/* Avatar */}
               <div className="relative shrink-0">
                 <Avatar className="w-20 h-20 ring-2 ring-primary/30">
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
@@ -138,35 +132,24 @@ const Profile = () => {
                     {getInitials(profileData.fullName, user.email || "")}
                   </AvatarFallback>
                 </Avatar>
-                {/* Estado online */}
                 <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-card ${isOnline ? "bg-green-500" : "bg-gray-400"}`} />
               </div>
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-display font-bold truncate">
-                  {profileData.fullName || "Sin nombre"}
+                  {profileData.fullName || user.user_metadata?.name || "Sin nombre"}
                 </h1>
                 <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                 <div className="flex items-center gap-1.5 mt-2">
                   {isOnline ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      <span className="text-xs font-medium text-green-600">Activo</span>
-                    </>
+                    <><CheckCircle2 className="w-4 h-4 text-green-500" /><span className="text-xs font-medium text-green-600">Activo</span></>
                   ) : (
-                    <>
-                      <XCircle className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs font-medium text-muted-foreground">Desconectado</span>
-                    </>
+                    <><XCircle className="w-4 h-4 text-gray-400" /><span className="text-xs font-medium text-muted-foreground">Desconectado</span></>
                   )}
                   <span className="text-muted-foreground mx-1">·</span>
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Miembro desde {memberSince}</span>
                 </div>
               </div>
-
-              {/* Acciones */}
               <div className="flex gap-2 shrink-0">
                 {!isEditing ? (
                   <>
@@ -191,12 +174,11 @@ const Profile = () => {
             </div>
           </Card>
 
-          {/* ── Información de contacto ── */}
+          {/* Información de contacto */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" /> Información de contacto
             </h2>
-
             {isEditing ? (
               <div className="space-y-4">
                 <div className="space-y-1.5">
@@ -219,15 +201,14 @@ const Profile = () => {
                 <InfoRow icon={<MapPin className="w-4 h-4" />} label="Dirección" value={profileData.address || "No registrada"} />
                 <InfoRow
                   icon={isOnline ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-gray-400" />}
-                  label="Estado"
-                  value={isOnline ? "Activo" : "Desconectado"}
+                  label="Estado" value={isOnline ? "Activo" : "Desconectado"}
                   valueClass={isOnline ? "text-green-600 font-semibold" : "text-muted-foreground"}
                 />
               </div>
             )}
           </Card>
 
-          {/* ── Estadísticas de reciclaje ── */}
+          {/* Estadísticas */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Trophy className="w-4 h-4 text-primary" /> Mis estadísticas
@@ -238,8 +219,6 @@ const Profile = () => {
               <StatCard icon={<Package className="w-5 h-5 text-blue-500" />} value={RECYCLING_HISTORY.length} label="Entregas" color="bg-blue-500/10" />
               <StatCard icon={<Leaf className="w-5 h-5 text-emerald-500" />} value="Bronce" label="Nivel actual" color="bg-emerald-500/10" />
             </div>
-
-            {/* Barra de progreso de nivel */}
             <div className="mt-5">
               <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                 <span>Progreso a Plata</span>
@@ -256,16 +235,14 @@ const Profile = () => {
             </div>
           </Card>
 
-          {/* ── Historial de reciclaje ── */}
+          {/* Historial */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Recycle className="w-4 h-4 text-primary" /> Historial de reciclaje
             </h2>
-
             {RECYCLING_HISTORY.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground text-sm">Aún no tienes entregas registradas.</p>
-                <p className="text-xs text-muted-foreground mt-1">Visita un punto limpio y comienza a sumar puntos.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -283,8 +260,7 @@ const Profile = () => {
                       <p className="text-xs text-muted-foreground">{item.amount} · {new Date(item.date).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                     <div className="flex items-center gap-1 text-primary font-bold text-sm shrink-0">
-                      <Star className="w-3.5 h-3.5" />
-                      {item.points} pts
+                      <Star className="w-3.5 h-3.5" />{item.points} pts
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </motion.div>
@@ -292,14 +268,12 @@ const Profile = () => {
               </div>
             )}
           </Card>
-
         </motion.div>
       </main>
     </div>
   );
 };
 
-// Componentes auxiliares
 const InfoRow = ({ icon, label, value, valueClass = "" }: { icon: React.ReactNode; label: string; value: string; valueClass?: string }) => (
   <div className="flex items-start gap-2">
     <span className="text-muted-foreground mt-0.5">{icon}</span>
