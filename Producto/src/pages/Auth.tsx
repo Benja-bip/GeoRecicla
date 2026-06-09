@@ -132,8 +132,9 @@ const Auth = () => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/profile` },
-    });
+      options: { 
+      redirectTo: `https://proyecto-web-reciclaje-7g6q.vercel.app/profile`},
+      });
     if (error) {
       toast({ title: "Error con Google", description: error.message, variant: "destructive" });
       setLoading(false);
