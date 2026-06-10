@@ -12,8 +12,8 @@ interface ComunaPoint {
   latitude?: number;
   longitude?: number;
   materials: string;
-  type: "Público" | "Privado" | "Usuario";
-  source: "official" | "user";
+  type: "Público" | "Privado" | "Usuario" | "Empresa";
+  source: "official" | "user" | "company";
 }
 
 const COMUNAS = [
@@ -46,7 +46,7 @@ const RecyclingPoints = () => {
           .order("name"),
         supabase
           .from("recycling_points")
-          .select("id, name, address, materials, comuna, latitude, longitude")
+          .select("id, name, address, materials, comuna, latitude, longitude, owner_type")
           .eq("comuna", comuna)
           .order("created_at", { ascending: false }),
       ]);
@@ -61,17 +61,20 @@ const RecyclingPoints = () => {
         source: "official",
       }));
 
-      const userMapped: ComunaPoint[] = (userPoints ?? []).map((p) => ({
-        id: p.id,
-        comuna: p.comuna ?? comuna,
-        name: p.name,
-        address: p.address ?? null,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        materials: Array.isArray(p.materials) ? p.materials.join(", ") : (p.materials ?? ""),
-        type: "Usuario",
-        source: "user",
-      }));
+      const userMapped: ComunaPoint[] = (userPoints ?? []).map((p: any) => {
+        const isCompany = p.owner_type === "company";
+        return {
+          id: p.id,
+          comuna: p.comuna ?? comuna,
+          name: p.name,
+          address: p.address ?? null,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          materials: Array.isArray(p.materials) ? p.materials.join(", ") : (p.materials ?? ""),
+          type: isCompany ? "Empresa" : "Usuario",
+          source: isCompany ? "company" : "user",
+        };
+      });
 
       setPoints([...officialMapped, ...userMapped]);
     } finally {
@@ -79,13 +82,11 @@ const RecyclingPoints = () => {
     }
   }, []);
 
-  // Resetear página al cambiar comuna
   useEffect(() => {
     setPage(1);
     fetchPoints(selectedComuna);
   }, [selectedComuna, fetchPoints]);
 
-  // Tiempo real — se resuscribe correctamente cuando cambia la comuna
   useEffect(() => {
     const channel = supabase
       .channel(`points_changes_${selectedComuna}`)
@@ -107,6 +108,7 @@ const RecyclingPoints = () => {
   const totalPages = Math.ceil(points.length / POINTS_PER_PAGE);
   const paginatedPoints = points.slice((page - 1) * POINTS_PER_PAGE, page * POINTS_PER_PAGE);
   const userPointsCount = points.filter(p => p.source === "user").length;
+  const companyPointsCount = points.filter(p => p.source === "company").length;
 
   return (
     <section>
@@ -116,7 +118,8 @@ const RecyclingPoints = () => {
           {points.length > 0 && (
             <p className="text-xs text-muted-foreground mt-0.5">
               {points.length} puntos
-              {userPointsCount > 0 && ` · ${userPointsCount} agregados por usuarios`}
+              {userPointsCount > 0 && ` · ${userPointsCount} de usuarios`}
+              {companyPointsCount > 0 && ` · ${companyPointsCount} de empresas`}
             </p>
           )}
         </div>
@@ -158,17 +161,22 @@ const RecyclingPoints = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   className={`bg-card rounded-xl border p-4 hover:shadow-eco transition-shadow ${
-                    point.source === "user" ? "border-primary/30 bg-primary/5" : "border-border"
+                    point.source === "company" ? "border-blue-500/30 bg-blue-500/5"
+                    : point.source === "user" ? "border-primary/30 bg-primary/5"
+                    : "border-border"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <h3 className="font-display font-bold text-foreground text-sm leading-tight">{point.name}</h3>
                     <span className={`flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${
                       point.type === "Público" ? "bg-primary/15 text-primary"
-                      : point.type === "Usuario" ? "bg-blue-500/15 text-blue-600"
+                      : point.type === "Empresa" ? "bg-blue-500/15 text-blue-600"
+                      : point.type === "Usuario" ? "bg-purple-500/15 text-purple-600"
                       : "bg-secondary text-secondary-foreground"
                     }`}>
-                      {point.type === "Usuario" ? <User className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                      {point.type === "Empresa" ? <Building2 className="w-3 h-3" />
+                       : point.type === "Usuario" ? <User className="w-3 h-3" />
+                       : <Building2 className="w-3 h-3" />}
                       {point.type}
                     </span>
                   </div>
@@ -194,7 +202,6 @@ const RecyclingPoints = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-6">
               <button
@@ -204,23 +211,19 @@ const RecyclingPoints = () => {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                   <button
                     key={n}
                     onClick={() => setPage(n)}
                     className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
-                      page === n
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border hover:bg-secondary text-foreground"
+                      page === n ? "bg-primary text-primary-foreground" : "border border-border hover:bg-secondary text-foreground"
                     }`}
                   >
                     {n}
                   </button>
                 ))}
               </div>
-
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
@@ -231,7 +234,6 @@ const RecyclingPoints = () => {
             </div>
           )}
 
-          {/* Info de página */}
           {totalPages > 1 && (
             <p className="text-center text-xs text-muted-foreground mt-2">
               Mostrando {(page - 1) * POINTS_PER_PAGE + 1}–{Math.min(page * POINTS_PER_PAGE, points.length)} de {points.length} puntos

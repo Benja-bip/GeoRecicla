@@ -1,19 +1,22 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LogOut, ArrowLeft, Save, Edit2, X,
   Mail, Phone, MapPin, CheckCircle2, XCircle,
   Recycle, Trophy, Star, Package, Leaf,
-  Clock, ChevronRight,
+  Clock, ChevronRight, Building2, FileText, LayoutDashboard, Plus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import AppHeader from "@/components/AppHeader";
 
@@ -33,34 +36,58 @@ const TOTAL_KG = RECYCLING_HISTORY.reduce((acc, r) => {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { profile, loading: profileLoading, isCompany } = useProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isOnline] = useState(true);
 
-  const [profileData, setProfileData] = useState({
-    fullName: "", phone: "", address: "",
-  });
+  // ---- Datos de usuario ----
+  const [profileData, setProfileData] = useState({ fullName: "", phone: "", address: "" });
   const [formData, setFormData] = useState(profileData);
 
-  // ✅ Espera a que loading termine antes de redirigir
+  // ---- Datos de empresa ----
+  const [companyData, setCompanyData] = useState({ companyName: "", phone: "", description: "" });
+  const [companyForm, setCompanyForm] = useState(companyData);
+
+  const [pointCount, setPointCount] = useState<number | null>(null);
+
+  const loading = authLoading || profileLoading;
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
       navigate("/auth", { replace: true });
       return;
     }
-    const meta = user.user_metadata || {};
-    const next = {
-      fullName: (meta.full_name as string) || "",
-      phone: (meta.phone as string) || "",
-      address: (meta.address as string) || "",
-    };
-    setProfileData(next);
-    setFormData(next);
-  }, [user, loading, navigate]);
 
-  // ✅ Muestra nada mientras carga o si no hay usuario
+    if (isCompany) {
+      const next = {
+        companyName: profile?.company_name || "",
+        phone: profile?.phone || "",
+        description: profile?.description || "",
+      };
+      setCompanyData(next);
+      setCompanyForm(next);
+
+      // Contar puntos publicados
+      supabase
+        .from("recycling_points")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .then(({ count }) => setPointCount(count ?? 0));
+    } else {
+      const meta = user.user_metadata || {};
+      const next = {
+        fullName: profile?.full_name || (meta.full_name as string) || "",
+        phone: profile?.phone || (meta.phone as string) || "",
+        address: profile?.address || (meta.address as string) || "",
+      };
+      setProfileData(next);
+      setFormData(next);
+    }
+  }, [user, loading, isCompany, profile, navigate]);
+
   if (loading) return null;
   if (!user) return null;
 
@@ -76,20 +103,56 @@ const Profile = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCompanyInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCompanyForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: formData.fullName,
-          phone: formData.phone,
-          address: formData.address,
-        },
+        data: { full_name: formData.fullName, phone: formData.phone, address: formData.address },
       });
       if (error) throw error;
+
+      await supabase.from("profiles").update({
+        full_name: formData.fullName,
+        phone: formData.phone,
+        address: formData.address,
+      }).eq("id", user.id);
+
       setProfileData(formData);
       setIsEditing(false);
       toast({ title: "Perfil actualizado", description: "Tus cambios se guardaron correctamente." });
+    } catch (error) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo guardar.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCompany = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          company_name: companyForm.companyName,
+          phone: companyForm.phone,
+          description: companyForm.description,
+        },
+      });
+      if (error) throw error;
+
+      await supabase.from("profiles").update({
+        company_name: companyForm.companyName,
+        phone: companyForm.phone,
+        description: companyForm.description,
+      }).eq("id", user.id);
+
+      setCompanyData(companyForm);
+      setIsEditing(false);
+      toast({ title: "Datos actualizados", description: "La información de tu empresa se guardó correctamente." });
     } catch (error) {
       toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo guardar.", variant: "destructive" });
     } finally {
@@ -108,13 +171,171 @@ const Profile = () => {
 
   const avatarSeed = user.email || user.id;
 
+  // ============================
+  //  PERFIL DE EMPRESA
+  // ============================
+  if (isCompany) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <motion.button
+            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" /> Volver al inicio
+          </motion.button>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+            {/* Card principal empresa */}
+            <Card className="p-6 bg-gradient-to-br from-blue-500/10 via-card to-card border-blue-500/20">
+              <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+                <div className="relative shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-blue-500/15 border-2 border-blue-500/30 flex items-center justify-center">
+                    <Building2 className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-card ${isOnline ? "bg-green-500" : "bg-gray-400"}`} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-2xl font-display font-bold truncate">
+                      {companyData.companyName || "Mi empresa"}
+                    </h1>
+                    <Badge className="bg-blue-500/15 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                      <Building2 className="w-3 h-3 mr-1" /> Empresa
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    {isOnline ? (
+                      <><CheckCircle2 className="w-4 h-4 text-green-500" /><span className="text-xs font-medium text-green-600">Activo</span></>
+                    ) : (
+                      <><XCircle className="w-4 h-4 text-gray-400" /><span className="text-xs font-medium text-muted-foreground">Desconectado</span></>
+                    )}
+                    <span className="text-muted-foreground mx-1">·</span>
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Registrada desde {memberSince}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 shrink-0">
+                  {!isEditing ? (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="gap-1.5">
+                        <Edit2 className="w-3.5 h-3.5" /> Editar
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={handleSignOut} className="gap-1.5">
+                        <LogOut className="w-3.5 h-3.5" /> Salir
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" onClick={handleSaveCompany} disabled={isSaving} className="gap-1.5">
+                        <Save className="w-3.5 h-3.5" /> {isSaving ? "Guardando..." : "Guardar"}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => { setCompanyForm(companyData); setIsEditing(false); }} className="gap-1.5">
+                        <X className="w-3.5 h-3.5" /> Cancelar
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Acceso al panel de empresa */}
+            <Link to="/empresa">
+              <Card className="p-4 hover:shadow-eco transition-shadow border-blue-500/20 hover:border-blue-500/40">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600">
+                    <LayoutDashboard className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Panel de empresa</h3>
+                    <p className="text-xs text-muted-foreground">Administra y publica tus puntos verdes</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Card>
+            </Link>
+
+            {/* Información de la empresa */}
+            <Card className="p-6">
+              <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" /> Información de la empresa
+              </h2>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="companyName">Nombre de la empresa</Label>
+                    <Input id="companyName" name="companyName" value={companyForm.companyName} onChange={handleCompanyInputChange} placeholder="EcoVerde SpA" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone">Teléfono de contacto</Label>
+                    <Input id="phone" name="phone" value={companyForm.phone} onChange={handleCompanyInputChange} placeholder="+56 9 XXXX XXXX" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="description">Descripción</Label>
+                    <Textarea id="description" name="description" value={companyForm.description} onChange={handleCompanyInputChange} placeholder="A qué se dedica tu empresa" rows={3} />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <InfoRow icon={<Mail className="w-4 h-4" />} label="Email" value={user.email || "—"} />
+                  <InfoRow icon={<Phone className="w-4 h-4" />} label="Teléfono" value={companyData.phone || "No registrado"} />
+                  <InfoRow
+                    icon={isOnline ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-gray-400" />}
+                    label="Estado" value={isOnline ? "Activo" : "Desconectado"}
+                    valueClass={isOnline ? "text-green-600 font-semibold" : "text-muted-foreground"}
+                  />
+                  {companyData.description && (
+                    <div className="sm:col-span-2 flex items-start gap-2">
+                      <FileText className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Descripción</p>
+                        <p className="text-sm font-medium">{companyData.description}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* Estadísticas de empresa */}
+            <Card className="p-6">
+              <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-primary" /> Resumen
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <StatCard icon={<Recycle className="w-5 h-5 text-blue-500" />} value={pointCount ?? "—"} label="Puntos verdes publicados" color="bg-blue-500/10" />
+                <StatCard icon={<MapPin className="w-5 h-5 text-green-500" />} value="Visible" label="Estado en el mapa" color="bg-green-500/10" />
+                <StatCard icon={<Star className="w-5 h-5 text-yellow-500" />} value="Verificada" label="Cuenta empresa" color="bg-yellow-500/10" />
+              </div>
+
+              <div className="mt-5">
+                <Link to="/empresa">
+                  <Button className="w-full gap-2">
+                    <Plus className="w-4 h-4" /> Publicar nuevo punto verde
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
+
+  // ============================
+  //  PERFIL DE USUARIO NORMAL
+  // ============================
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
@@ -122,7 +343,6 @@ const Profile = () => {
         </motion.button>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-          {/* Card principal */}
           <Card className="p-6">
             <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
               <div className="relative shrink-0">
@@ -174,7 +394,6 @@ const Profile = () => {
             </div>
           </Card>
 
-          {/* Información de contacto */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" /> Información de contacto
@@ -208,7 +427,6 @@ const Profile = () => {
             )}
           </Card>
 
-          {/* Estadísticas */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Trophy className="w-4 h-4 text-primary" /> Mis estadísticas
@@ -225,17 +443,12 @@ const Profile = () => {
                 <span>{TOTAL_POINTS} / 200 pts</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-primary rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min((TOTAL_POINTS / 200) * 100, 100)}%` }}
-                  transition={{ duration: 0.8, delay: 0.3 }}
-                />
+                <motion.div className="h-full bg-primary rounded-full"
+                  initial={{ width: 0 }} animate={{ width: `${Math.min((TOTAL_POINTS / 200) * 100, 100)}%` }} transition={{ duration: 0.8, delay: 0.3 }} />
               </div>
             </div>
           </Card>
 
-          {/* Historial */}
           <Card className="p-6">
             <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
               <Recycle className="w-4 h-4 text-primary" /> Historial de reciclaje
@@ -249,9 +462,7 @@ const Profile = () => {
                 {RECYCLING_HISTORY.map((item, i) => (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.07 }}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.07 }}
                     className="flex items-center gap-3 p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors"
                   >
                     <span className="text-2xl">{item.icon}</span>

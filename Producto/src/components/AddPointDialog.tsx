@@ -136,6 +136,7 @@ const AddPointDialog = ({ open, onClose }: Props) => {
     setNotes(""); setLat(null); setLng(null); setComuna(""); setPhoto(null);
     setPhotoPreview(null); setLocationMode(null); setSearchQuery("");
   };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +163,7 @@ const AddPointDialog = ({ open, onClose }: Props) => {
         notes: notes || null,
         photo_url,
         comuna: comuna || null,
+        owner_type: "user",
       });
       if (error) throw error;
       toast.success(`¡Punto agregado en ${comuna || "el mapa"}!`);
