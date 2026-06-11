@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +53,10 @@ type LocationMode = "gps" | "search" | "map" | null;
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialMaterials?: string[];
 }
 
-const AddPointDialog = ({ open, onClose }: Props) => {
+const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -71,6 +72,11 @@ const AddPointDialog = ({ open, onClose }: Props) => {
   const [locationMode, setLocationMode] = useState<LocationMode>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!open || initialMaterials.length === 0) return;
+    setSelectedMaterials((prev) => Array.from(new Set([...prev, ...initialMaterials])));
+  }, [open, initialMaterials]);
 
   const toggleMaterial = (material: string) => {
     setSelectedMaterials((prev) =>

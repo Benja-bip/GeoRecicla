@@ -6,18 +6,23 @@ import MaterialsSection from "@/components/MaterialsSection";
 import MaterialDialog from "@/components/MaterialDialog";
 import RecyclingPoints from "@/components/RecyclingPoints";
 import AddPointDialog from "@/components/AddPointDialog";
+import AddMaterialDialog from "@/components/AddMaterialDialog";
 import { Recycle } from "lucide-react";
 import { geocodeAddress, type GeocodeResult } from "@/lib/points";
 import { type Material } from "@/lib/materials-data";
+import { useCustomMaterials } from "@/hooks/useCustomMaterials";
 import { toast } from "sonner";
 
 const Index = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addPointOpen, setAddPointOpen] = useState(false);
+  const [addMaterialDialogOpen, setAddMaterialDialogOpen] = useState(false);
+  const [pendingMaterials, setPendingMaterials] = useState<string[]>([]);
   const [searchLocation, setSearchLocation] = useState<GeocodeResult | null>(null);
   const [searching, setSearching] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const { customMaterials, addMaterial, removeMaterial } = useCustomMaterials();
 
   const handleSearch = async (address: string) => {
     setSearching(true);
@@ -41,13 +46,25 @@ const Index = () => {
     setDialogOpen(true);
   };
 
+  const handleOpenPointDialog = () => {
+    setPendingMaterials(activeFilter ? [activeFilter] : []);
+    setAddPointOpen(true);
+  };
+
+  const handleOpenPointWithMaterial = (material: Material) => {
+    setPendingMaterials([material.filter]);
+    setActiveFilter(material.filter);
+    setAddPointOpen(true);
+    setDialogOpen(false);
+  };
+
   const handleFilterChange = (filter: string | null) => {
     setActiveFilter(filter);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader onAddPoint={() => setAddPointOpen(true)} />
+      <AppHeader onAddPoint={handleOpenPointDialog} />
 
       <main className="container mx-auto px-4 py-6 space-y-8 max-w-5xl">
         <SearchBar onSearch={handleSearch} loading={searching} />
@@ -67,12 +84,15 @@ const Index = () => {
           </div>
         )}
 
-        <MapView searchLocation={searchLocation} materialFilter={activeFilter} />
+        <MapView searchLocation={searchLocation} materialFilter={activeFilter} customMaterials={customMaterials} />
 
         <MaterialsSection
           onOpenDialog={handleOpenDialog}
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
+          customMaterials={customMaterials}
+          onOpenAddMaterial={() => setAddMaterialDialogOpen(true)}
+          onRemoveCustomMaterial={removeMaterial}
         />
 
         <div id="puntos-limpios">
@@ -105,8 +125,24 @@ const Index = () => {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         material={selectedMaterial}
+        onCreatePoint={handleOpenPointWithMaterial}
       />
-      <AddPointDialog open={addPointOpen} onClose={() => setAddPointOpen(false)} />
+      <AddPointDialog
+        open={addPointOpen}
+        onClose={() => {
+          setAddPointOpen(false);
+          setPendingMaterials([]);
+        }}
+        initialMaterials={pendingMaterials}
+      />
+      <AddMaterialDialog
+        open={addMaterialDialogOpen}
+        onClose={() => setAddMaterialDialogOpen(false)}
+        onAdd={(material) => {
+          addMaterial(material);
+          setAddMaterialDialogOpen(false);
+        }}
+      />
     </div>
   );
 };

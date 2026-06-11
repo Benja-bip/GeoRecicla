@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { supabase } from "@/integrations/supabase/client";
 import { demoPoints, haversineKm, directionsUrl, type RecyclingPoint } from "@/lib/points";
 import { getAllComunaMapPoints } from "@/lib/comunas";
+import { type Material } from "@/lib/materials-data";
 
 const defaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -27,6 +28,7 @@ const userIcon = L.divIcon({
 interface MapViewProps {
   searchLocation?: { lat: number; lng: number; displayName: string } | null;
   materialFilter?: string | null;
+  customMaterials?: Material[];
 }
 
 const FlyTo = ({ location }: { location: MapViewProps["searchLocation"] }) => {
@@ -40,7 +42,7 @@ const FlyTo = ({ location }: { location: MapViewProps["searchLocation"] }) => {
   return null;
 };
 
-const MapView = ({ searchLocation, materialFilter }: MapViewProps) => {
+const MapView = ({ searchLocation, materialFilter, customMaterials = [] }: MapViewProps) => {
   const [userPoints, setUserPoints] = useState<RecyclingPoint[]>([]);
 
   useEffect(() => {

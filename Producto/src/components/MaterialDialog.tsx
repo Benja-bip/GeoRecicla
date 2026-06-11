@@ -6,9 +6,10 @@ interface MaterialDialogProps {
   open: boolean;
   onClose: () => void;
   material: Material | null;
+  onCreatePoint?: (material: Material) => void;
 }
 
-const MaterialDialog = ({ open, onClose, material }: MaterialDialogProps) => {
+const MaterialDialog = ({ open, onClose, material, onCreatePoint }: MaterialDialogProps) => {
   if (!material) return null;
 
   return (
@@ -82,18 +83,21 @@ const MaterialDialog = ({ open, onClose, material }: MaterialDialogProps) => {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    onCreatePoint?.(material);
+                    onClose();
+                  }}
                   className="flex-1 py-2.5 rounded-xl gradient-eco font-semibold text-sm text-primary-foreground transition-opacity hover:opacity-90"
                 >
-                  Ver en mapa
+                  Agregar punto con este material
                 </button>
                 <button
                   onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl border border-border bg-card font-semibold text-sm text-foreground hover:bg-secondary transition-colors"
                 >
-                  Cerrar
+                  Ver en mapa
                 </button>
               </div>
             </div>
