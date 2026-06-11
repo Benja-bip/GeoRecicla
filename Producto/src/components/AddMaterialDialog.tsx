@@ -98,7 +98,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-x-4 top-[5%] md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-xl bg-card rounded-2xl shadow-2xl z-50 overflow-hidden border border-border max-h-[90vh] overflow-y-auto"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-xl max-h-[90vh] bg-card rounded-2xl shadow-2xl z-50 overflow-hidden border border-border overflow-y-auto"
           >
             <div className="p-8 space-y-6">
               {/* Header centrado */}
