@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { type Material } from "@/lib/materials-data";
@@ -41,7 +42,6 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
   };
 
   const handleSubmit = () => {
-    // Validación
     if (!name.trim()) {
       toast.error("El nombre del material es obligatorio");
       return;
@@ -83,7 +83,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
     onClose();
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -115,7 +115,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
             {/* Contenido scrolleable */}
             <div className="overflow-y-auto flex-1">
               <div className="px-6 pb-3 space-y-4">
-                {/* Emoji Picker - centrado y compacto */}
+                {/* Emoji Picker */}
                 <div className="flex flex-col items-center gap-2">
                   <label className="text-sm font-semibold text-foreground">
                     Ícono del material
@@ -281,7 +281,8 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
