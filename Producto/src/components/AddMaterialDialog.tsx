@@ -100,41 +100,42 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="fixed inset-x-4 top-[5%] md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-xl bg-card rounded-2xl shadow-2xl z-50 overflow-hidden border border-border max-h-[90vh] overflow-y-auto"
           >
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-xl font-bold text-foreground">Agregar Material</h2>
-                <button onClick={onClose} className="p-1 rounded-lg hover:bg-secondary transition-colors">
-                  <X className="w-5 h-5 text-muted-foreground" />
-                </button>
+            <div className="p-8 space-y-6">
+              {/* Header centrado */}
+              <div className="text-center space-y-2">
+                <h2 className="font-display text-2xl font-bold text-foreground">Agregar Material</h2>
+                <p className="text-xs text-muted-foreground">Completa la información para crear un nuevo material personalizado</p>
               </div>
 
-              <div className="space-y-4">
-                {/* Emoji Picker */}
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
-                    Ícono del material
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {EMOJI_PICKER.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => setEmoji(e)}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl transition-all ${
-                          emoji === e
-                            ? "bg-primary/20 border-2 border-primary ring-2 ring-primary/30"
-                            : "bg-secondary border border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
+              {/* Emoji Picker - centrado y compacto */}
+              <div className="flex flex-col items-center gap-3">
+                <label className="text-sm font-semibold text-foreground">
+                  Ícono del material
+                </label>
+                <div className="flex gap-2 justify-center flex-wrap max-w-xs mx-auto">
+                  {EMOJI_PICKER.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => setEmoji(e)}
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${
+                        emoji === e
+                          ? "bg-primary/20 border-2 border-primary ring-2 ring-primary/30 scale-110"
+                          : "bg-secondary border border-border hover:border-primary/50 hover:scale-105"
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              <div className="h-px bg-border/50" />
+
+              <div className="space-y-4 max-w-md mx-auto">
 
                 {/* Nombre */}
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Nombre del material *
                   </label>
                   <Input
@@ -147,7 +148,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
 
                 {/* Descripción corta */}
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Descripción corta
                   </label>
                   <Input
@@ -160,7 +161,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
 
                 {/* Nombre completo */}
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Nombre completo (para diálogo)
                   </label>
                   <Input
@@ -173,7 +174,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
 
                 {/* Filtro */}
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Valor de filtro (para mapa) *
                   </label>
                   <Input
@@ -184,35 +185,35 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
                     disabled={name.length === 0}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    El mapa buscará exactamente este valor en los puntos de reciclaje
+                    El mapa buscará exactamente este valor en los puntos
                   </p>
                 </div>
 
                 {/* Información */}
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Información detallada
                   </label>
                   <textarea
-                    placeholder="Descripción completa para que aparezca en el diálogo..."
+                    placeholder="Descripción completa para el diálogo..."
                     value={info}
                     onChange={(e) => setInfo(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground resize-vertical min-h-20"
+                    className="w-full p-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground resize-none min-h-16"
                   />
                 </div>
 
                 {/* Tips */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-foreground">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Tips para reciclar *
                     </label>
                     <button
                       onClick={handleAddTip}
                       disabled={tips.length >= 5}
-                      className="text-xs text-primary hover:underline disabled:opacity-50"
+                      className="text-xs text-primary hover:underline disabled:opacity-50 font-semibold"
                     >
-                      + Agregar tip
+                      + Agregar
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -222,12 +223,12 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
                           placeholder={`Tip ${i + 1}`}
                           value={tip}
                           onChange={(e) => handleTipChange(i, e.target.value)}
-                          className="bg-secondary border-border flex-1"
+                          className="bg-secondary border-border flex-1 text-sm"
                         />
                         {tips.length > 1 && (
                           <button
                             onClick={() => handleRemoveTip(i)}
-                            className="px-3 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm"
+                            className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-xs font-semibold"
                           >
                             ✕
                           </button>
@@ -238,7 +239,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
                 </div>
 
                 {/* Reciclable */}
-                <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
                   <label className="flex items-center gap-2 cursor-pointer flex-1">
                     <input
                       type="checkbox"
@@ -253,8 +254,8 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 mt-6">
+              {/* Actions - centrado */}
+              <div className="flex gap-3 mt-8 max-w-md mx-auto">
                 <button
                   onClick={handleSubmit}
                   className="flex-1 py-2.5 rounded-xl gradient-eco font-semibold text-sm text-primary-foreground transition-opacity hover:opacity-90"
@@ -268,6 +269,12 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
                   Cancelar
                 </button>
               </div>
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
             </div>
           </motion.div>
         </>
