@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { type Material } from "@/lib/materials-data";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,10 +11,10 @@ interface AddMaterialDialogProps {
   onAdd: (material: Omit<Material, "id">) => void;
 }
 
-// Emojis comunes para materiales
 const EMOJI_PICKER = ["🧴", "📦", "🫙", "🥫", "📄", "📱", "🛢️", "🪛", "⚙️", "🪨", "🧬", "💡", "🔌", "📡", "🪜"];
 
 const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => {
+  const [visible, setVisible] = useState(false);
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🧴");
   const [desc, setDesc] = useState("");
@@ -25,10 +24,19 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
   const [tips, setTips] = useState(["", "", ""]);
   const [recyclable, setRecyclable] = useState(true);
 
-  const handleAddTip = () => {
-    if (tips.length < 5) {
-      setTips([...tips, ""]);
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => setVisible(true), 10);
+      document.body.style.overflow = "hidden";
+    } else {
+      setVisible(false);
+      document.body.style.overflow = "";
     }
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  const handleAddTip = () => {
+    if (tips.length < 5) setTips([...tips, ""]);
   };
 
   const handleRemoveTip = (index: number) => {
@@ -42,246 +50,331 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
   };
 
   const handleSubmit = () => {
-    if (!name.trim()) {
-      toast.error("El nombre del material es obligatorio");
-      return;
-    }
-    if (!filter.trim()) {
-      toast.error("El filtro es obligatorio (valor para buscar)");
-      return;
-    }
-
+    if (!name.trim()) { toast.error("El nombre del material es obligatorio"); return; }
+    if (!filter.trim()) { toast.error("El filtro es obligatorio"); return; }
     const validTips = tips.filter((t) => t.trim());
-    if (validTips.length === 0) {
-      toast.error("Agrega al menos un tip");
-      return;
-    }
+    if (validTips.length === 0) { toast.error("Agrega al menos un tip"); return; }
 
-    const newMaterial: Omit<Material, "id"> = {
+    onAdd({
       name: name.trim(),
-      emoji: emoji,
+      emoji,
       desc: desc.trim() || "Material personalizado",
       fullName: fullName.trim() || name.trim(),
       filter: filter.trim(),
       info: info.trim() || `Material personalizado: ${name}`,
       tips: validTips,
       recyclable,
-    };
+    });
 
-    onAdd(newMaterial);
     toast.success(`✓ Material "${name}" agregado exitosamente`);
-
-    // Reset
-    setName("");
-    setEmoji("🧴");
-    setDesc("");
-    setFullName("");
-    setFilter("");
-    setInfo("");
-    setTips(["", "", ""]);
-    setRecyclable(true);
+    setName(""); setEmoji("🧴"); setDesc(""); setFullName("");
+    setFilter(""); setInfo(""); setTips(["", "", ""]); setRecyclable(true);
     onClose();
   };
 
+  if (!open) return null;
+
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50"
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        backgroundColor: "rgba(0,0,0,0.5)",
+        backdropFilter: "blur(4px)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.2s ease",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "560px",
+          maxHeight: "88vh",
+          backgroundColor: "hsl(var(--card))",
+          borderRadius: "1rem",
+          border: "1px solid hsl(var(--border))",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          transform: visible ? "scale(1) translateY(0)" : "scale(0.95) translateY(16px)",
+          transition: "transform 0.2s ease, opacity 0.2s ease",
+          opacity: visible ? 1 : 0,
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{
+          padding: "1.25rem 1.5rem 1rem",
+          borderBottom: "1px solid hsl(var(--border))",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexShrink: 0,
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700, color: "hsl(var(--foreground))" }}>
+              Agregar Material
+            </h2>
+            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "hsl(var(--muted-foreground))" }}>
+              Completa la información para crear un nuevo material personalizado
+            </p>
+          </div>
+          <button
             onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-2xl max-h-[85vh] bg-card rounded-2xl shadow-2xl z-50 border border-border flex flex-col overflow-hidden"
+            style={{
+              padding: "0.25rem",
+              borderRadius: "0.5rem",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "hsl(var(--muted-foreground))",
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              marginLeft: "1rem",
+            }}
           >
-            {/* Header fijo */}
-            <div className="p-5 text-center space-y-1 shrink-0">
-              <h2 className="font-display text-xl font-bold text-foreground">Agregar Material</h2>
-              <p className="text-xs text-muted-foreground">Completa la información para crear un nuevo material personalizado</p>
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-secondary transition-colors"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
+            <X size={18} />
+          </button>
+        </div>
 
-            {/* Contenido scrolleable */}
-            <div className="overflow-y-auto flex-1">
-              <div className="px-6 pb-3 space-y-4">
-                {/* Emoji Picker */}
-                <div className="flex flex-col items-center gap-2">
-                  <label className="text-sm font-semibold text-foreground">
-                    Ícono del material
-                  </label>
-                  <div className="flex gap-1.5 justify-center flex-wrap max-w-xs mx-auto">
-                    {EMOJI_PICKER.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => setEmoji(e)}
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${
-                          emoji === e
-                            ? "bg-primary/20 border-2 border-primary ring-2 ring-primary/30 scale-110"
-                            : "bg-secondary border border-border hover:border-primary/50 hover:scale-105"
-                        }`}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {/* Scrollable content */}
+        <div style={{ overflowY: "auto", flex: 1, padding: "1.25rem 1.5rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-                <div className="h-px bg-border/50" />
-
-                <div className="space-y-3 max-w-md mx-auto">
-                  {/* Nombre */}
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                      Nombre del material *
-                    </label>
-                    <Input
-                      placeholder="Ej: Plástico PVC"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-
-                  {/* Descripción corta */}
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                      Descripción corta
-                    </label>
-                    <Input
-                      placeholder="Ej: Plástico tipo 3"
-                      value={desc}
-                      onChange={(e) => setDesc(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-
-                  {/* Nombre completo */}
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                      Nombre completo (para diálogo)
-                    </label>
-                    <Input
-                      placeholder="Ej: Plástico PVC - Tipo 3"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-
-                  {/* Filtro */}
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                      Valor de filtro (para mapa) *
-                    </label>
-                    <Input
-                      placeholder="Ej: PVC"
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                      className="bg-secondary border-border"
-                      disabled={name.length === 0}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      El mapa buscará exactamente este valor en los puntos
-                    </p>
-                  </div>
-
-                  {/* Información */}
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                      Información detallada
-                    </label>
-                    <textarea
-                      placeholder="Descripción completa para el diálogo..."
-                      value={info}
-                      onChange={(e) => setInfo(e.target.value)}
-                      className="w-full p-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground resize-none min-h-16"
-                    />
-                  </div>
-
-                  {/* Tips */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Tips para reciclar *
-                      </label>
-                      <button
-                        onClick={handleAddTip}
-                        disabled={tips.length >= 5}
-                        className="text-xs text-primary hover:underline disabled:opacity-50 font-semibold"
-                      >
-                        + Agregar
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {tips.map((tip, i) => (
-                        <div key={i} className="flex gap-2">
-                          <Input
-                            placeholder={`Tip ${i + 1}`}
-                            value={tip}
-                            onChange={(e) => handleTipChange(i, e.target.value)}
-                            className="bg-secondary border-border flex-1 text-sm"
-                          />
-                          {tips.length > 1 && (
-                            <button
-                              onClick={() => handleRemoveTip(i)}
-                              className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-xs font-semibold"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reciclable */}
-                  <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                    <label className="flex items-center gap-2 cursor-pointer flex-1">
-                      <input
-                        type="checkbox"
-                        checked={recyclable}
-                        onChange={(e) => setRecyclable(e.target.checked)}
-                        className="w-4 h-4 rounded border-border"
-                      />
-                      <span className="text-sm font-medium text-foreground">
-                        Reciclable en punto limpio
-                      </span>
-                    </label>
-                  </div>
-                </div>
+            {/* Emoji picker */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.625rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Ícono del material
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                {EMOJI_PICKER.map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => setEmoji(e)}
+                    style={{
+                      width: "2.75rem",
+                      height: "2.75rem",
+                      borderRadius: "0.625rem",
+                      border: emoji === e ? "2px solid hsl(var(--primary))" : "1px solid hsl(var(--border))",
+                      background: emoji === e ? "hsl(var(--primary) / 0.15)" : "hsl(var(--secondary))",
+                      fontSize: "1.25rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transform: emoji === e ? "scale(1.1)" : "scale(1)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {e}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Botones fijos al fondo */}
-            <div className="flex gap-3 p-5 pt-3 border-t border-border bg-card shrink-0 max-w-md mx-auto w-full justify-center">
-              <button
-                onClick={handleSubmit}
-                className="flex-1 py-2.5 rounded-xl gradient-eco font-semibold text-sm text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Agregar Material
-              </button>
-              <button
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-border bg-card font-semibold text-sm text-foreground hover:bg-secondary transition-colors"
-              >
-                Cancelar
-              </button>
+            <div style={{ height: "1px", background: "hsl(var(--border))" }} />
+
+            {/* Nombre */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Nombre del material *
+              </label>
+              <Input placeholder="Ej: Plástico PVC" value={name} onChange={(e) => setName(e.target.value)} className="bg-secondary border-border" />
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>,
+
+            {/* Descripción corta */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Descripción corta
+              </label>
+              <Input placeholder="Ej: Plástico tipo 3" value={desc} onChange={(e) => setDesc(e.target.value)} className="bg-secondary border-border" />
+            </div>
+
+            {/* Nombre completo */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Nombre completo (para diálogo)
+              </label>
+              <Input placeholder="Ej: Plástico PVC - Tipo 3" value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-secondary border-border" />
+            </div>
+
+            {/* Filtro */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Valor de filtro (para mapa) *
+              </label>
+              <Input
+                placeholder="Ej: PVC"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="bg-secondary border-border"
+                disabled={name.length === 0}
+              />
+              <p style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", marginTop: "0.25rem" }}>
+                El mapa buscará exactamente este valor en los puntos
+              </p>
+            </div>
+
+            {/* Información */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Información detallada
+              </label>
+              <textarea
+                placeholder="Descripción completa para el diálogo..."
+                value={info}
+                onChange={(e) => setInfo(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "0.5rem",
+                  background: "hsl(var(--secondary))",
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: "0.875rem",
+                  color: "hsl(var(--foreground))",
+                  resize: "none",
+                  minHeight: "80px",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* Tips */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Tips para reciclar *
+                </label>
+                <button
+                  onClick={handleAddTip}
+                  disabled={tips.length >= 5}
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "hsl(var(--primary))",
+                    background: "none",
+                    border: "none",
+                    cursor: tips.length >= 5 ? "not-allowed" : "pointer",
+                    opacity: tips.length >= 5 ? 0.5 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <Plus size={14} /> Agregar
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {tips.map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: "0.5rem" }}>
+                    <Input
+                      placeholder={`Tip ${i + 1}`}
+                      value={tip}
+                      onChange={(e) => handleTipChange(i, e.target.value)}
+                      className="bg-secondary border-border flex-1 text-sm"
+                    />
+                    {tips.length > 1 && (
+                      <button
+                        onClick={() => handleRemoveTip(i)}
+                        style={{
+                          padding: "0 0.625rem",
+                          borderRadius: "0.5rem",
+                          border: "none",
+                          background: "hsl(var(--destructive) / 0.1)",
+                          color: "hsl(var(--destructive))",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reciclable */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.75rem",
+              background: "hsl(var(--primary) / 0.05)",
+              border: "1px solid hsl(var(--primary) / 0.2)",
+              borderRadius: "0.5rem",
+            }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.625rem", cursor: "pointer", flex: 1 }}>
+                <input
+                  type="checkbox"
+                  checked={recyclable}
+                  onChange={(e) => setRecyclable(e.target.checked)}
+                  style={{ width: "1rem", height: "1rem" }}
+                />
+                <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "hsl(var(--foreground))" }}>
+                  Reciclable en punto limpio
+                </span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: "1rem 1.5rem",
+          borderTop: "1px solid hsl(var(--border))",
+          display: "flex",
+          gap: "0.75rem",
+          flexShrink: 0,
+          background: "hsl(var(--card))",
+        }}>
+          <button
+            onClick={handleSubmit}
+            className="gradient-eco"
+            style={{
+              flex: 1,
+              padding: "0.625rem",
+              borderRadius: "0.75rem",
+              border: "none",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              color: "hsl(var(--primary-foreground))",
+              cursor: "pointer",
+            }}
+          >
+            Agregar Material
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: "0.625rem",
+              borderRadius: "0.75rem",
+              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--card))",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              color: "hsl(var(--foreground))",
+              cursor: "pointer",
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>,
     document.body
   );
 };
