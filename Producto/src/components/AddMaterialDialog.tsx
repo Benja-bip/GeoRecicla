@@ -98,11 +98,11 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-xl max-h-[90vh] bg-card rounded-2xl shadow-2xl z-50 border border-border flex flex-col overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-2xl max-h-[85vh] bg-card rounded-2xl shadow-2xl z-50 border border-border flex flex-col overflow-hidden"
           >
             {/* Header fijo */}
-            <div className="p-6 text-center space-y-2 shrink-0">
-              <h2 className="font-display text-2xl font-bold text-foreground">Agregar Material</h2>
+            <div className="p-5 text-center space-y-1 shrink-0">
+              <h2 className="font-display text-xl font-bold text-foreground">Agregar Material</h2>
               <p className="text-xs text-muted-foreground">Completa la información para crear un nuevo material personalizado</p>
               <button
                 onClick={onClose}
@@ -114,13 +114,13 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
 
             {/* Contenido scrolleable */}
             <div className="overflow-y-auto flex-1">
-              <div className="px-8 pb-4 space-y-6">
+              <div className="px-6 pb-3 space-y-4">
                 {/* Emoji Picker - centrado y compacto */}
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-2">
                   <label className="text-sm font-semibold text-foreground">
                     Ícono del material
                   </label>
-                  <div className="flex gap-2 justify-center flex-wrap max-w-xs mx-auto">
+                  <div className="flex gap-1.5 justify-center flex-wrap max-w-xs mx-auto">
                     {EMOJI_PICKER.map((e) => (
                       <button
                         key={e}
@@ -139,7 +139,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
 
                 <div className="h-px bg-border/50" />
 
-                <div className="space-y-4 max-w-md mx-auto">
+                <div className="space-y-3 max-w-md mx-auto">
                   {/* Nombre */}
                   <div>
                     <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
@@ -264,7 +264,7 @@ const AddMaterialDialog = ({ open, onClose, onAdd }: AddMaterialDialogProps) => 
             </div>
 
             {/* Botones fijos al fondo */}
-            <div className="flex gap-3 p-6 pt-4 border-t border-border bg-card shrink-0 max-w-md mx-auto w-full justify-center">
+            <div className="flex gap-3 p-5 pt-3 border-t border-border bg-card shrink-0 max-w-md mx-auto w-full justify-center">
               <button
                 onClick={handleSubmit}
                 className="flex-1 py-2.5 rounded-xl gradient-eco font-semibold text-sm text-primary-foreground transition-opacity hover:opacity-90"
