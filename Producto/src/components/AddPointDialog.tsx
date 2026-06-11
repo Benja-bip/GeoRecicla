@@ -10,6 +10,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { comunaCenters } from "@/lib/comunas";
@@ -54,10 +55,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   initialMaterials?: string[];
+  ownerType?: "user" | "company";
 }
 
-const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
+const AddPointDialog = ({ open, onClose, initialMaterials = [], ownerType }: Props) => {
   const { user } = useAuth();
+  const { profile, loading: profileLoading, isCompany } = useProfile();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -72,6 +75,14 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
   const [locationMode, setLocationMode] = useState<LocationMode>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [userPointCount, setUserPointCount] = useState<number | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
+  const isUserLimitReached = !isCompany && userPointCount !== null && userPointCount >= 2;
+  const finalOwnerType = ownerType ?? (isCompany ? "company" : "user");
+  const dialogTitle = finalOwnerType === "company" ? "Agregar punto de empresa" : "Agregar punto de reciclaje";
+  const dialogDescription = finalOwnerType === "company"
+    ? "Completa la información del punto empresarial. Aparecerá en el mapa con etiqueta de empresa."
+    : "Ayuda a la comunidad confirmando un nuevo punto.";
 
   useEffect(() => {
     if (!open || initialMaterials.length === 0) return;
@@ -115,6 +126,31 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
     );
   };
 
+  useEffect(() => {
+    if (!open || !user || profileLoading || isCompany) {
+      setUserPointCount(null);
+      return;
+    }
+
+    const fetchCount = async () => {
+      setCountLoading(true);
+      const { count, error } = await supabase
+        .from("recycling_points")
+        .select("id", { head: true, count: "exact" })
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error al contar puntos de usuario:", error.message);
+        setUserPointCount(null);
+      } else {
+        setUserPointCount(count ?? 0);
+      }
+      setCountLoading(false);
+    };
+
+    fetchCount();
+  }, [open, user, isCompany]);
+
   const searchAddress = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
@@ -147,6 +183,18 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (profileLoading) {
+      toast.error("Verificando tipo de cuenta... intenta de nuevo en un momento.");
+      return;
+    }
+    if (countLoading) {
+      toast.error("Verificando límite de creación de puntos... intenta de nuevo.");
+      return;
+    }
+    if (!isCompany && userPointCount !== null && userPointCount >= 2) {
+      toast.error("Ya alcanzaste el límite de 2 puntos permitidos para tu cuenta.");
+      return;
+    }
     if (lat === null || lng === null) { toast.error("Selecciona una ubicación primero"); return; }
     if (selectedMaterials.length === 0) { toast.error("Agrega al menos un material"); return; }
     setLoading(true);
@@ -169,10 +217,10 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
         notes: notes || null,
         photo_url,
         comuna: comuna || null,
-        owner_type: "user",
+        owner_type: finalOwnerType,
       });
       if (error) throw error;
-      toast.success(`¡Punto agregado en ${comuna || "el mapa"}!`);
+      toast.success(`${finalOwnerType === "company" ? "¡Punto de empresa publicado" : "¡Punto agregado"} en ${comuna || "el mapa"}!`);
       reset();
       onClose();
     } catch (err: any) {
@@ -268,6 +316,21 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
                   ))}
                 </div>
               )}
+              {profileLoading && (
+                <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
+                  Verificando el tipo de cuenta... espera un momento.
+                </div>
+              )}
+              {isUserLimitReached && !profileLoading && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  Has alcanzado el máximo de <strong>2 puntos</strong> permitidos para tu cuenta personal. Las empresas no tienen este límite.
+                </div>
+              )}
+              {userPointCount !== null && !isCompany && !isUserLimitReached && !profileLoading && (
+                <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
+                  Has agregado {userPointCount} de 2 puntos permitidos para tu cuenta personal.
+                </div>
+              )}
             </div>
 
             {/* Paso 3 — Ubicación */}
@@ -345,7 +408,7 @@ const AddPointDialog = ({ open, onClose, initialMaterials = [] }: Props) => {
               <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Horario, acceso, información adicional..." />
             </div>
 
-            <Button type="submit" disabled={loading || !locationConfirmed || selectedMaterials.length === 0} className="w-full">
+            <Button type="submit" disabled={loading || profileLoading || countLoading || !locationConfirmed || selectedMaterials.length === 0 || isUserLimitReached} className="w-full">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar punto
             </Button>
