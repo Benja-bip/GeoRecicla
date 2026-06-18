@@ -6,6 +6,7 @@ import {
   Mail, Phone, MapPin, CheckCircle2, XCircle,
   Recycle, Trophy, Star, Package, Leaf,
   Clock, ChevronRight, Building2, FileText, LayoutDashboard, Plus,
+  Trash2, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -17,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import AppHeader from "@/components/AppHeader";
 
 const RECYCLING_HISTORY = [
@@ -38,22 +39,24 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading, isCompany } = useProfile();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isOnline] = useState(true);
 
-  // ---- Datos de usuario ----
   const [profileData, setProfileData] = useState({ fullName: "", phone: "", address: "" });
-  const [formData, setFormData] = useState(profileData);
+  const [formData, setFormData] = useState({ fullName: "", phone: "", address: "" });
 
-  // ---- Datos de empresa ----
   const [companyData, setCompanyData] = useState({ companyName: "", phone: "", description: "" });
-  const [companyForm, setCompanyForm] = useState(companyData);
+  const [companyForm, setCompanyForm] = useState({ companyName: "", phone: "", description: "" });
 
   const [pointCount, setPointCount] = useState<number | null>(null);
+  const [userPoints, setUserPoints] = useState<any[]>([]);
+  const [loadingUserPoints, setLoadingUserPoints] = useState(true);
 
   const loading = authLoading || profileLoading;
 
+  // ── Efecto principal: redirige si no hay usuario, carga datos de perfil ──
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -70,7 +73,6 @@ const Profile = () => {
       setCompanyData(next);
       setCompanyForm(next);
 
-      // Contar puntos publicados
       supabase
         .from("recycling_points")
         .select("id", { count: "exact", head: true })
@@ -88,9 +90,23 @@ const Profile = () => {
     }
   }, [user, loading, isCompany, profile, navigate]);
 
-  if (loading) return null;
+  // ── Carga puntos del usuario normal ──
+  useEffect(() => {
+    if (!loading && user && !isCompany) loadUserPoints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, isCompany]);
+
+  // ── TODOS los hooks están arriba — recién aquí los returns condicionales ──
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!user) return null;
 
+  // ── Helpers ──
   const getInitials = (name: string, email: string) => {
     if (name && name.trim()) {
       return name.trim().split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
@@ -124,9 +140,9 @@ const Profile = () => {
 
       setProfileData(formData);
       setIsEditing(false);
-      toast({ title: "Perfil actualizado", description: "Tus cambios se guardaron correctamente." });
+      toast.success("Perfil actualizado correctamente.");
     } catch (error) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo guardar.", variant: "destructive" });
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar.");
     } finally {
       setIsSaving(false);
     }
@@ -152,11 +168,36 @@ const Profile = () => {
 
       setCompanyData(companyForm);
       setIsEditing(false);
-      toast({ title: "Datos actualizados", description: "La información de tu empresa se guardó correctamente." });
+      toast.success("Datos de empresa actualizados correctamente.");
     } catch (error) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo guardar.", variant: "destructive" });
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const loadUserPoints = async () => {
+    if (!user) return;
+    setLoadingUserPoints(true);
+    const { data, error } = await supabase
+      .from("recycling_points")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("owner_type", "user")
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    else setUserPoints((data as any[]) ?? []);
+    setLoadingUserPoints(false);
+  };
+
+  const handleDeleteUserPoint = async (id: string) => {
+    if (!confirm("¿Eliminar este punto?")) return;
+    const { error } = await supabase.from("recycling_points").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Punto eliminado correctamente.");
+      setUserPoints((p) => p.filter((x) => x.id !== id));
+      setPointCount((c) => (c !== null ? c - 1 : c));
     }
   };
 
@@ -188,7 +229,6 @@ const Profile = () => {
           </motion.button>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-            {/* Card principal empresa */}
             <Card className="p-6 bg-gradient-to-br from-blue-500/10 via-card to-card border-blue-500/20">
               <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
                 <div className="relative shrink-0">
@@ -244,7 +284,6 @@ const Profile = () => {
               </div>
             </Card>
 
-            {/* Acceso al panel de empresa */}
             <Link to="/empresa">
               <Card className="p-4 hover:shadow-eco transition-shadow border-blue-500/20 hover:border-blue-500/40">
                 <div className="flex items-center gap-3">
@@ -260,7 +299,6 @@ const Profile = () => {
               </Card>
             </Link>
 
-            {/* Información de la empresa */}
             <Card className="p-6">
               <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" /> Información de la empresa
@@ -302,7 +340,6 @@ const Profile = () => {
               )}
             </Card>
 
-            {/* Estadísticas de empresa */}
             <Card className="p-6">
               <h2 className="text-base font-display font-bold mb-4 flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-primary" /> Resumen
@@ -312,7 +349,6 @@ const Profile = () => {
                 <StatCard icon={<MapPin className="w-5 h-5 text-green-500" />} value="Visible" label="Estado en el mapa" color="bg-green-500/10" />
                 <StatCard icon={<Star className="w-5 h-5 text-yellow-500" />} value="Verificada" label="Cuenta empresa" color="bg-yellow-500/10" />
               </div>
-
               <div className="mt-5">
                 <Link to="/empresa">
                   <Button className="w-full gap-2">
@@ -443,8 +479,12 @@ const Profile = () => {
                 <span>{TOTAL_POINTS} / 200 pts</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <motion.div className="h-full bg-primary rounded-full"
-                  initial={{ width: 0 }} animate={{ width: `${Math.min((TOTAL_POINTS / 200) * 100, 100)}%` }} transition={{ duration: 0.8, delay: 0.3 }} />
+                <motion.div
+                  className="h-full bg-primary rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min((TOTAL_POINTS / 200) * 100, 100)}%` }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                />
               </div>
             </div>
           </Card>
@@ -468,13 +508,64 @@ const Profile = () => {
                     <span className="text-2xl">{item.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{item.type}</p>
-                      <p className="text-xs text-muted-foreground">{item.amount} · {new Date(item.date).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.amount} · {new Date(item.date).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 text-primary font-bold text-sm shrink-0">
                       <Star className="w-3.5 h-3.5" />{item.points} pts
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </motion.div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-display font-bold flex items-center gap-2">
+                <Recycle className="w-4 h-4 text-primary" /> Mis puntos agregados
+              </h2>
+              <Badge>{userPoints.length}</Badge>
+            </div>
+
+            {loadingUserPoints ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : userPoints.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Aún no has agregado puntos al mapa.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {userPoints.map((p) => (
+                  <div key={p.id} className="p-4 rounded-lg bg-secondary flex gap-4 items-center">
+                    <div className="w-20 h-20 rounded-lg bg-secondary flex items-center justify-center overflow-hidden shrink-0">
+                      {p.photo_url ? (
+                        <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Recycle className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{p.name}</h3>
+                      {p.address && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <MapPin className="w-3 h-3" />{p.address}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(Array.isArray(p.materials) ? p.materials : []).map((m: string) => (
+                          <Badge key={m} variant="outline" className="text-[10px]">{m}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteUserPoint(p.id)} aria-label="Eliminar">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 ))}
               </div>
             )}
