@@ -7,9 +7,11 @@ Tanto **usuarios individuales** como **empresas** pueden publicar nuevos puntos 
 - 👤 Los **usuarios** pueden agregar hasta **2 puntos** de reciclaje.
 - 🏢 Las **empresas** pueden agregar **puntos ilimitados**.
 
-Además, GeoRecicla cuenta con un **blog informativo** donde la comunidad puede aprender sobre cómo reciclar correctamente cada tipo de material.
+Además, los usuarios pueden **crear materiales personalizados** desde la sección "Identifica tu material", asignándoles un ícono, descripción y tips de reciclaje. Estos materiales quedan disponibles como filtros del mapa y se persisten en el navegador.
 
-Las funcionalidades de agregar puntos o aplicar filtros solo están disponibles para usuarios autenticados. El sistema de inicio de sesión permite:
+GeoRecicla también cuenta con un **blog informativo** donde la comunidad puede aprender sobre cómo reciclar correctamente cada tipo de material.
+
+Las funcionalidades de agregar puntos, aplicar filtros o crear materiales personalizados solo están disponibles para usuarios autenticados. El sistema de inicio de sesión permite:
 
 - Iniciar sesión con **cuenta de Google** o con **correo y contraseña**.
 - **Recuperar contraseña** en caso de olvido.
@@ -37,14 +39,40 @@ Cada perfil (usuario o empresa) muestra los puntos de reciclaje que ha agregado,
 
 ### Mapas
 - **Leaflet** + **React Leaflet** — mapa interactivo y geolocalización
+- **Nominatim / OpenStreetMap API** — geocodificación de direcciones (búsqueda por texto)
 
 ### Backend / Base de datos
-- **Supabase** — autenticación (correo y Google), base de datos y almacenamiento
+- **Supabase** — autenticación (correo y Google), base de datos PostgreSQL y almacenamiento de imágenes
 
 ### Testing y calidad de código
 - **Vitest** + **Testing Library** — pruebas unitarias
 - **ESLint** — linting
 - **TypeScript ESLint** — reglas de tipado
+
+---
+
+## 📋 Requisitos previos
+
+Antes de ejecutar el proyecto asegúrate de tener instalado:
+
+- **Node.js** v18 o superior
+- **npm** v9 o superior
+- Una cuenta en [Supabase](https://supabase.com) con un proyecto creado (para la base de datos y autenticación)
+
+---
+
+## ⚙️ Variables de entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables (disponibles en el panel de tu proyecto en Supabase, sección *Project Settings → API*):
+
+```env
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-clave-anonima
+```
+
+> ⚠️ Este archivo **no debe subirse al repositorio**. Ya está incluido en `.gitignore`.
+
+Para el despliegue en producción (Vercel), configura estas mismas variables en *Settings → Environment Variables* del proyecto en Vercel.
 
 ---
 
@@ -56,11 +84,11 @@ Producto/
 ├── src/
 │   ├── assets/             # Imágenes y recursos
 │   ├── components/         # Componentes reutilizables (UI, diálogos, mapa, etc.)
-│   ├── hooks/               # Hooks personalizados (useAuth, useProfile, etc.)
+│   ├── hooks/               # Hooks personalizados (useAuth, useProfile, useCustomMaterials, etc.)
 │   ├── integrations/        # Configuración de Supabase
-│   ├── lib/                 # Utilidades y datos (materials-data, points, etc.)
+│   ├── lib/                 # Utilidades y datos (materials-data, points, comunas, etc.)
 │   ├── pages/                # Páginas de la app (Index, Auth, Profile, Company, Blog...)
-│   ├── test/                 # Pruebas
+│   ├── test/                 # Pruebas unitarias
 │   ├── App.tsx               # Configuración de rutas principales
 │   └── main.tsx               # Punto de entrada de la aplicación
 ├── supabase/                  # Configuración del backend
@@ -93,11 +121,11 @@ npm run test
 | Nombre | Rol |
 |---|---|
 | Benjamín Palma | QA y backend |
-| Alen Vergara | Product Owner y Frontend|
+| Alen Vergara | Product Owner y Frontend |
 | Miguel Vergara | Scrum master |
 
 ---
 
 ## 📌 Estado del proyecto
 
-Proyecto en desarrollo activo como parte de un trabajo académico orientado a fomentar el reciclaje y la conciencia ambiental mediante tecnología.
+Proyecto académico desarrollado para DuocUC, orientado a fomentar el reciclaje y la conciencia ambiental mediante tecnología.
